@@ -4,7 +4,7 @@
  Seasonality plugin for GLPI
  Copyright (C) 2003-2015 by the Seasonality Development Team.
 
- https://forge.indepnet.net/projects/seasonality
+ https://github.com/InfotelGLPI/seasonality
  -------------------------------------------------------------------------
 
  LICENSE
@@ -33,7 +33,7 @@ if (!defined('GLPI_ROOT')) {
 class PluginSeasonalitySeasonality extends CommonDBTM {
 
    static $rightname = 'plugin_seasonality';
-
+   
    /**
     * functions mandatory
     * getTypeName(), canCreate(), canView()
@@ -41,7 +41,7 @@ class PluginSeasonalitySeasonality extends CommonDBTM {
    static function getTypeName($nb=0) {
       return _n('Seasonality', 'Seasonalities', $nb, 'seasonality');
    }
-   
+    
    /**
     * Show form
     *
@@ -53,16 +53,26 @@ class PluginSeasonalitySeasonality extends CommonDBTM {
       $this->initForm($ID, $options);
       $this->showFormHeader($options);
 
+      $config = new PluginSeasonalityConfig();
+      $config->getFromDB(1);
+            
       echo "<tr class='tab_bg_1'>";
       echo "<td>".__('Name')."&nbsp;<span class='red'>*</span></td>";
       echo "<td>";
       Html::autocompletionTextField($this, "name", array('value' => $this->fields['name']));
       echo "</td>";
       echo "<td>";
-      echo __('Urgency')."&nbsp;<span class='red'>*</span>";
-      echo "</td>";
-      echo "<td>";
-      Ticket::dropdownUrgency(array('value' => $this->fields["urgency"]));
+      if($config->fields['config'] == 0){
+         echo __('Urgency')."&nbsp;<span class='red'>*</span>";
+         echo "</td>";
+         echo "<td>";
+         Ticket::dropdownUrgency(array('value' => $this->fields["urgency"]));
+      }else{
+         echo PluginSeasonalitySensibility::getTypeName(1)."&nbsp;<span class='red'>*</span>";
+         echo "</td>";
+         echo "<td>";
+         PluginSeasonalitySensibility::dropdownSensitivity(array('value' => $this->fields["urgency"]));
+      }
       echo "</td>";
       echo "</tr>";
       
@@ -141,7 +151,7 @@ class PluginSeasonalitySeasonality extends CommonDBTM {
    function computeNextCreationDate($begin_date, $end_date, $periodicity, $date_ticket) {
 
       if (empty($begin_date) || ($begin_date == 'NULL')) {
-         return 'NULL';
+         return false;
       }
       
       $dates = array($begin_date, $end_date);
@@ -268,9 +278,16 @@ class PluginSeasonalitySeasonality extends CommonDBTM {
       $tab[8]['name']           = __('Recurrent');
       $tab[8]['datatype']       = 'bool';
       
+      $config = new PluginSeasonalityConfig();
+      $config->getFromDB(1);
+      
       $tab[9]['table']          = $this->getTable();
       $tab[9]['field']          = 'urgency';
-      $tab[9]['name']           = __('Urgency');
+      if($config->fields['config'] == 0){
+          $tab[9]['name']           = __('Urgency');
+      }else{
+         $tab[9]['name']           = PluginSeasonalitySensibility::getTypeName(1);
+      }
       $tab[9]['datatype']       = 'specific';
       $tab[9]['searchtype']     = 'equals';
       $tab[9]['massiveaction']  = true;
@@ -294,7 +311,13 @@ class PluginSeasonalitySeasonality extends CommonDBTM {
       switch ($field) {
          case 'urgency' :
             $options['value'] = $values[$field];
-            return Ticket::dropdownUrgency(array('name' => $name,'value' => $values[$field], 'display' => false));
+            $config = new PluginSeasonalityConfig();
+            $config->getFromDB(1);
+            if($config->fields['config'] == 0){
+               return Ticket::dropdownUrgency(array('name' => $name,'value' => $values[$field], 'display' => false));
+            }else{
+                return PluginSeasonalitySensibility::dropdownSensitivity(array('name' => $name,'value' => $values[$field], 'display' => false));
+            }
       }
       return parent::getSpecificValueToSelect($field, $name, $values, $options);
    }
@@ -310,7 +333,13 @@ class PluginSeasonalitySeasonality extends CommonDBTM {
       }
       switch ($field) {
          case 'urgency':
-            return Ticket::getUrgencyName($values[$field]);
+            $config = new PluginSeasonalityConfig();
+            $config->getFromDB(1);
+            if($config->fields['config'] == 0){
+               return Ticket::getUrgencyName($values[$field]);
+            }else{
+               return PluginSeasonalitySensibility::getSensitivityName($values[$field]);
+            }
       }
       return parent::getSpecificValueToDisplay($field, $values, $options);
    }
@@ -325,11 +354,19 @@ class PluginSeasonalitySeasonality extends CommonDBTM {
       $msg     = array();
       $checkKo = false;
       
-      $mandatory_fields = array('end_date'          => __('End date'),
-                                'begin_date'        => __('Begin date'),
-                                'name'              => __('Name'),
-                                'urgency'           => __('Urgency'));
-
+      $config = new PluginSeasonalityConfig();
+      $config->getFromDB(1);
+      if($config->fields['config'] == 0){
+         $mandatory_fields = array('end_date'          => __('End date'),
+                                 'begin_date'        => __('Begin date'),
+                                 'name'              => __('Name'),
+                                 'urgency'           => __('Urgency'));
+      }else{
+         $mandatory_fields = array('end_date'          => __('End date'),
+                                  'begin_date'        => __('Begin date'),
+                                  'name'              => __('Name'),
+                                  'urgency'           => PluginSeasonalitySensibility::getTypeName(1));
+      }
       foreach ($input as $key => $value) {
          if (array_key_exists($key, $mandatory_fields)) {
             if (empty($value)) {
@@ -356,13 +393,25 @@ class PluginSeasonalitySeasonality extends CommonDBTM {
       $menu['title']                          = PluginSeasonalitySeasonality::getTypeName(2);
       $menu['page']                           = $plugin_page;
       $menu['links']['search']                = $plugin_page;
-      
+      $menu['links']['config'] = PluginSeasonalityConfig::getFormURL(false);
       // Main
       $menu['options']['seasonality']['title']            = PluginSeasonalitySeasonality::getTypeName(1);
       $menu['options']['seasonality']['page']             = PluginSeasonalitySeasonality::getSearchURL(false);
       $menu['options']['seasonality']['links']['add']     = PluginSeasonalitySeasonality::getFormURL(false);
       $menu['options']['seasonality']['links']['search']  = PluginSeasonalitySeasonality::getSearchURL(false);
 
+      
+      // config
+      $menu['options']['config']['title']           = __('Setup');
+      $menu['options']['config']['page']            = '/plugins/seasonality/front/seasonality.php';
+      $menu['options']['config']['links']['add']    = '/plugins/seasonality/front/seasonality.form.php';
+      $menu['options']['config']['links']['search'] = '/plugins/seasonality/front/seasonality.php';
+      
+      $menu['options']['sensibility']['title']           = PluginSeasonalitySensibility::getTypeName(1);
+      $menu['options']['sensibility']['page']            = '/plugins/seasonality/front/sensibility.php';
+      $menu['options']['sensibility']['links']['add']    = '/plugins/seasonality/front/sensibility.form.php';
+      $menu['options']['sensibility']['links']['search'] = '/plugins/seasonality/front/sensibility.php';
+      
       return $menu;
    }
    

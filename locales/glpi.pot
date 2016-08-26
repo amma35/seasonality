@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GLPI - Seasonality plugin 1.0.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-01 12:13+0200\n"
+"POT-Creation-Date: 2016-01-12 16:40+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,16 +18,34 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 
-#: setup.php:78 inc/item.class.php:680 inc/profile.class.php:40
+#: setup.php:82 inc/item.class.php:705 inc/profile.class.php:40
 #: inc/profile.class.php:129 inc/seasonality.class.php:42
 msgid "Seasonality"
 msgid_plural "Seasonalities"
 msgstr[0] ""
 msgstr[1] ""
 
-#: setup.php:90
-msgid "This plugin requires GLPI >= 0.85"
+#: setup.php:94
+msgid "This plugin requires GLPI >= 0.90"
 msgstr ""
+
+#: inc/config.class.php:39
+msgid "Plugin Setup"
+msgstr ""
+
+#: inc/config.class.php:63
+msgid "Definition of fields to be modified according to seasonality"
+msgstr ""
+
+#: inc/config.class.php:86
+msgid "Add a sensibility"
+msgstr ""
+
+#: inc/config.class.php:113 inc/sensibility.class.php:41
+msgid "Sensibility"
+msgid_plural "Sensibilities"
+msgstr[0] ""
+msgstr[1] ""
 
 #: inc/item.class.php:42
 msgid "Seasonality item"
@@ -39,42 +57,50 @@ msgstr[1] ""
 msgid "Add a category"
 msgstr ""
 
-#: inc/item.class.php:567
+#: inc/item.class.php:592
 msgid "Add seasonality"
 msgstr ""
 
-#: inc/item.class.php:568
+#: inc/item.class.php:593
 msgid "Delete seasonality"
 msgstr ""
 
-#: inc/item.class.php:713
+#: inc/item.class.php:738
 msgid "Cannot add two seasonalities with same date interval"
 msgstr ""
 
-#: inc/seasonality.class.php:71
+#: inc/seasonality.class.php:81
 msgid "Date range"
 msgstr ""
 
-#: inc/seasonality.class.php:80
+#: inc/seasonality.class.php:90
 msgid "Clear"
 msgstr ""
 
-#: inc/seasonality.class.php:82
+#: inc/seasonality.class.php:92
 msgid "Select date range..."
 msgstr ""
 
-#: inc/seasonality.class.php:88
+#: inc/seasonality.class.php:98
 msgid "Today"
 msgstr ""
 
-#: inc/seasonality.class.php:92
+#: inc/seasonality.class.php:102
 msgid "Tomorrow"
 msgstr ""
 
-#: inc/seasonality.class.php:96
+#: inc/seasonality.class.php:106
 msgid "Next 7 Days"
 msgstr ""
 
-#: inc/seasonality.class.php:100
+#: inc/seasonality.class.php:110
 msgid "Next Week"
+msgstr ""
+
+#: inc/sensibility.class.php:70
+msgid "Matrix"
+msgstr ""
+
+#: inc/sensibility.class.php:266
+msgid "Matrix of the general configuration"
 msgstr ""

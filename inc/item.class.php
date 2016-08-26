@@ -4,7 +4,7 @@
  Seasonality plugin for GLPI
  Copyright (C) 2003-2015 by the Seasonality Development Team.
 
- https://forge.indepnet.net/projects/seasonality
+ https://github.com/InfotelGLPI/seasonality
  -------------------------------------------------------------------------
 
  LICENSE
@@ -33,7 +33,7 @@ if (!defined('GLPI_ROOT')) {
 class PluginSeasonalityItem extends CommonDBTM {
 
    static $rightname = 'plugin_seasonality';
-
+   
    /**
     * functions mandatory
     * getTypeName(), canCreate(), canView()
@@ -53,6 +53,11 @@ class PluginSeasonalityItem extends CommonDBTM {
             $temp = new self();
             $temp->deleteByCriteria(array(
                 'plugin_seasonality_seasonalities_id' => $item->getField("id")
+            ), 1);
+         case 'ITILCategory' :
+            $temp = new self();
+            $temp->deleteByCriteria(array(
+                'itilcategories_id' => $item->getField("id")
             ), 1);
       }
    }
@@ -280,6 +285,9 @@ class PluginSeasonalityItem extends CommonDBTM {
             $massiveactionparams = array('item' => __CLASS__, 'container' => 'mass'.__CLASS__.$rand);
             Html::showMassiveActions($massiveactionparams);
          }
+         
+         $config = new PluginSeasonalityConfig();
+         $config->getFromDB(1);
 
          Html::printAjaxPager(PluginSeasonalitySeasonality::getTypeName(2), $start, countElementsInTable($this->getTable(), "`".$this->getTable()."`.`itilcategories_id` = '".$item->fields['id']."'"));
          echo "<table class='tab_cadre_fixehov'>";
@@ -290,7 +298,9 @@ class PluginSeasonalityItem extends CommonDBTM {
          }
          echo "</th>";
          echo "<th>".__('Name')."</th>";
-         echo "<th>".__('Urgency')."</th>";
+         if($config->fields['config'] == 0){
+            echo "<th>".__('Urgency')."</th>";
+         }
          echo "<th>".__('Begin date')."</th>";
          echo "<th>".__('End date')."</th>";
          echo "<th>".__('Recurrent')."</th>";
@@ -306,11 +316,13 @@ class PluginSeasonalityItem extends CommonDBTM {
             // Data
             $item = new PluginSeasonalitySeasonality();
             $item->getFromDB($field['plugin_seasonality_seasonalities_id']);
-            echo "<td>".$item->getLink()."</td>";
-            echo "<td>".Ticket::getUrgencyName($field["urgency"])."</td>";
-            echo "<td>".Html::convDate($field['begin_date'])."</td>";
-            echo "<td>".Html::convDate($field['end_date'])."</td>";
-            echo "<td>".Dropdown::getYesNo($field['periodicity'])."</td>";
+            echo "<td>" . $item->getLink() . "</td>";
+            if ($config->fields['config'] == 0) {
+               echo "<td>" . Ticket::getUrgencyName($field["urgency"]) . "</td>";
+            }
+            echo "<td>" . Html::convDate($field['begin_date']) . "</td>";
+            echo "<td>" . Html::convDate($field['end_date']) . "</td>";
+            echo "<td>" . Dropdown::getYesNo($field['periodicity']) . "</td>";
             echo "</tr>";
          }
          echo "</table>";
@@ -385,8 +397,7 @@ class PluginSeasonalityItem extends CommonDBTM {
       return $output;
    }
    
-      
-   /**
+    /**
     * Get urgency from ticket category
     * 
     * @param type $itilcategories_id
@@ -456,7 +467,7 @@ class PluginSeasonalityItem extends CommonDBTM {
       $datas = $this->getItemsForCategory($itilcategories_id);
       if (!empty($datas)) {
          foreach($datas as $data){
-            if ($seasonality->computeNextCreationDate($data['begin_date'], $data['end_date'], $data['periodicity'], $date)) {
+          if ($seasonality->computeNextCreationDate($data['begin_date'], $data['end_date'], $data['periodicity'], $date)) {
                $urgency_name       = Ticket::getUrgencyName($data["urgency"]);
                $urgency_id         = $data["urgency"];
 
@@ -481,7 +492,7 @@ class PluginSeasonalityItem extends CommonDBTM {
                    'default_impact'     => $default_impact,
                    'default_priority'   => $default_priority);
    }
-   
+      
    /**
     * Show form
     *
@@ -742,5 +753,100 @@ class PluginSeasonalityItem extends CommonDBTM {
       
       return true;
    }
+   
+     /**
+    * Get criticty 
+    * 
+    * @param type $itilcategories_id
+    * @param type $tickets_id
+    * @param type $type
+    * @param type $entities_id
+    * @param type $nbAffectedUsers
+    * @param type $helpdeskUrgency
+    * @return type
+    */
+   function getCriticity($itilcategories_id, $date, $nbAffectedUsers, $helpdeskUrgency) {
+
+      // Default values
+      $error = 1;
+      $criticity      = NULL;   
+      $seasonality        = new PluginSeasonalitySeasonality();
+      // Find correct seasonality for category
+      $datas = $this->getItemsForCategory($itilcategories_id);
+      if (!empty($datas)) {
+         foreach($datas as $data){
+            if ($seasonality->computeNextCreationDate($data['begin_date'], $data['end_date'], $data['periodicity'], $date)) {
+               $seasonality->getFromDB($data["plugin_seasonality_seasonalities_id"]);
+               $default_priority = self::calculatingCriticality($seasonality->fields['urgency'], $nbAffectedUsers, $helpdeskUrgency);
+               $error = 0;
+            }
+         }
+      }
+      if($error == 1){
+         if(self::calculatingCriticality(-1, $nbAffectedUsers, $helpdeskUrgency) != 0){
+            $default_priority = self::calculatingCriticality(-1, $nbAffectedUsers, $helpdeskUrgency);
+            $error = 0;
+         }
+         
+      }
+      if($error){
+         return array('error'              => $error,
+                      'template'           => 0);
+      }else{
+         return array('error'              => $error,
+                      'template'           => 0,
+                      'criticity'          => $default_priority,
+                      'criticityName'      => Ticket::getPriorityName($default_priority));
+      }
+   }
+   
+   function getSeasonality($itilcategories_id, $date) {
+      $seasonalities_link = null;
+      $seasonality = new PluginSeasonalitySeasonality();
+      $error = 1; 
+      // Find correct seasonality for category
+      $datas = $this->getItemsForCategory($itilcategories_id);
+      if (!empty($datas)) {
+         foreach($datas as $data){
+            if($seasonality->computeNextCreationDate($data['begin_date'], $data['end_date'], $data['periodicity'], $date)){
+               $urgency_name       = Ticket::getUrgencyName($data["urgency"]);
+               $urgency_id         = $data["urgency"];
+
+               $seasonality->getFromDB($data["plugin_seasonality_seasonalities_id"]);
+               if ($_SESSION['glpiactiveprofile']['interface'] == 'central' && self::canUpdate()) {
+                  $seasonalities_link = "<div id='seasonalities_link'>".$seasonality->getLink(array('linkoption' => 'target="_blank"'))."</div>";
+               } else {
+                  $seasonalities_link = "<div id='seasonalities_link'>".$seasonality->fields['name']."</div>";
+               }
+               $error = 0; 
+               break;
+            }
+         }
+      }
+      return array('error'              => $error,
+                   'seasonalities_link' => $seasonalities_link);
+   }
+
+   /**
+    * calculation of the criticality
+    * @param type $nbAffectedUsers
+    * @param type $helpdeskUrgency
+    */
+   static function calculatingCriticality($sensibility, $nbAffectedUsers, $helpdeskUrgency) {
+      global $CFG_GLPI;
+      //matrix config general
+      if($sensibility == -1){
+         $matrix = $CFG_GLPI['priority_matrix'];
+      }else{
+         $plugin_sensibility = new PluginSeasonalitySensibility();
+         $plugin_sensibility->getFromDB($sensibility);
+         $matrix = json_decode($plugin_sensibility->fields['matrix'],true);
+      }
+      if(isset($matrix[$helpdeskUrgency][$nbAffectedUsers])){
+         return $matrix[$helpdeskUrgency][$nbAffectedUsers];
+      }
+      return 0;
+   }
+
    
 }

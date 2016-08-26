@@ -35,6 +35,16 @@ if (!isset($_POST['tickets_id']) || empty($_POST['tickets_id'])){
 }
 
 switch($_POST['action']){
+   case 'loadCriticity':
+      header("Content-Type: text/html; charset=UTF-8");
+      $item = new PluginSeasonalityItem();
+      echo json_encode($item->getCriticity($_POST['itilcategories_id'], $_POST['date'], $_POST['nbAffectedUsers'], $_POST['helpdeskUrgency']));
+      break;
+   case 'loadSeasonality':
+       header("Content-Type: text/html; charset=UTF-8");
+      $item = new PluginSeasonalityItem();
+      echo json_encode($item->getSeasonality($_POST['itilcategories_id'], $_POST['date']));
+      break;
    case 'changeUrgency':
       header("Content-Type: text/html; charset=UTF-8");
       $item = new PluginSeasonalityItem();

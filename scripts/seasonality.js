@@ -20,8 +20,8 @@
             }
 //            object.initValues = new Array();
         }
-
-        /** 
+        
+           /** 
          * Add elements to ticket or central
          */
         this.addelements = function () {
@@ -75,27 +75,7 @@
             });
         }
         
-//        /** 
-//         * Save curent ticket
-//         */
-//        this.saveCurrentTicket = function (){
-//            // Save current values
-//            object.initValues['urgency']  = $("select[name='urgency'], input[name='urgency']").val();
-//            object.initValues['impact']   = $("select[name='impact'], input[name='impact']").val()
-//            object.initValues['priority'] = $("select[name='priority'], input[name='priority']").val();
-//        }
-//        
-        /** 
-         * Restore curent ticket
-         */
-        this.restoreCurrentTicket = function (json){
-            // restore current values
-            $("select[name='urgency'], input[name='urgency']").select2("val", json.default_urgency);
-            $('select[name="impact"], input[name="impact"]').select2("val", json.default_impact);
-            $('select[name="priority"], input[name="priority"]').select2("val", json.default_priority);
-        }
-        
-        /** 
+         /** 
          * Load urgency
          * 
          * @param string tickets_id
@@ -155,6 +135,7 @@
                                 success: function (response, opts) {
                                     $('span[id^="change_priority_"]').html(response);
                                     if ((tickets_id == 0 || tickets_id == undefined) && reload) {
+                                        $("input[name='add']").remove();
                                         $('form[name="form_ticket"], form[name="helpdeskform"]').submit();
                                     }
                                 }
@@ -164,12 +145,166 @@
                                 object.restoreCurrentTicket(json);
                             }
                             if ((tickets_id == 0 || tickets_id == undefined) && reload) {
+                                $("input[name='add']").remove();
                                 $('form[name="form_ticket"], form[name="helpdeskform"]').submit();
                             }
                         }
                     }
                 });
             }
+        }
+
+
+        /** 
+         * Add elements to ticket or central for priority
+         */
+        this.addelementsSensibility = function () {
+            $(document).ready(function () {
+                // Get tickets_id
+                var tickets_id = object.urlParam(window.location.href, 'id');
+
+                // CENTRAL
+                if (location.pathname.indexOf('ticket.form.php') > 0 && !object.isIE()) {
+                    // Launched on each complete Ajax load 
+                    $(document).ajaxComplete(function (event, xhr, option) {
+                        // We execute the code only if the central form display request is done 
+                        if (option.url != undefined && (option.url.indexOf('common.tabs.php') > 0)) {
+                            // Delay the execution (ajax requestcomplete event fired before dom loading)
+                            setTimeout(function () {
+                                var itilcategoriesIdElm = $('select[name="itilcategories_id"], input[name="itilcategories_id"]');
+                                if (itilcategoriesIdElm.val() > 0) {
+                                    // Unbind existing on_change
+                                    if (tickets_id == 0 || tickets_id == undefined) {
+                                        itilcategoriesIdElm.off("change");
+                                    }
+                                    //reset action changes
+                                    $("select[name='urgency']").unbind('change');
+                                    $("select[name='impact']").unbind('change');
+
+                                    object.loadSeasonality();
+
+                                    itilcategoriesIdElm.on('change', function () {
+                                        object.loadCriticity(tickets_id, true);
+                                        object.loadSeasonality();
+                                    });
+
+                                    var nbAffectedUsersIdElm = $("select[name='impact']");
+                                    nbAffectedUsersIdElm.on('change', function () {
+                                        object.loadCriticity(tickets_id, false);
+                                    });
+
+                                    var helpdeskUrgencyIdElm = $("select[name='urgency']");
+                                    helpdeskUrgencyIdElm.on('change', function () {
+                                        object.loadCriticity(tickets_id, false);
+                                    });
+
+                                }
+                            }, 100);
+                        }
+                    }, this);
+                
+                // POST ONLY
+                } else if (location.pathname.indexOf('helpdesk.public.php') > 0 || location.pathname.indexOf('tracking.injector.php') > 0 || object.isIE()){
+                    var itilcategoriesIdElm = $('select[name="itilcategories_id"], input[name="itilcategories_id"]');
+
+                    // Unbind existing on_change
+                    if (tickets_id == 0 || tickets_id == undefined){
+                        itilcategoriesIdElm.off( "change" );
+                    }
+                    object.loadCriticity(tickets_id, false);
+                    
+                }
+            });
+        }
+        
+//        /** 
+//         * Save curent ticket
+//         */
+//        this.saveCurrentTicket = function (){
+//            // Save current values
+//            object.initValues['urgency']  = $("select[name='urgency'], input[name='urgency']").val();
+//            object.initValues['impact']   = $("select[name='impact'], input[name='impact']").val()
+//            object.initValues['priority'] = $("select[name='priority'], input[name='priority']").val();
+//        }
+//        
+        /** 
+         * Restore curent ticket
+         */
+        this.restoreCurrentTicket = function (json){
+            // restore current values
+            $("select[name='urgency'], input[name='urgency']").select2("val", json.default_urgency);
+            $('select[name="impact"], input[name="impact"]').select2("val", json.default_impact);
+            $('select[name="priority"], input[name="priority"]').select2("val", json.default_priority);
+        }
+        
+         /** 
+         * Load Seasonality
+         */
+        this.loadSeasonality = function (){
+            var root_doc                = object.params['root_doc'];
+            var itilcategoriesIdElm     = $("select[name='itilcategories_id'], input[name='itilcategories_id']");
+            var date                = $("input[name='date']");
+            
+            $.ajax({
+                url: root_doc + '/plugins/seasonality/ajax/ticket.php',
+                type: "POST",
+                dataType: "json",
+                data: {
+                    action: 'loadSeasonality',
+                    itilcategories_id: (itilcategoriesIdElm.length != 0) ? itilcategoriesIdElm.val() : '0',
+                    date              : (date.length != 0) ? date.val() : '0',
+                },
+                success: function (json, opts) {
+                    if ($('#seasonalities_link').length != 0) {
+                        $('#seasonalities_link').remove();
+                    }
+
+                    if (!json.error) {
+                        // Append seasonality link after category
+                        itilcategoriesIdElm.parent().append(json.seasonalities_link);
+                    }
+
+                }
+            });
+        }
+        
+        /** 
+         * Load Criticity
+         */
+        this.loadCriticity = function (tickets_id, reload){
+            var root_doc                = object.params['root_doc'];
+            var itilcategoriesIdElm     = $("select[name='itilcategories_id'], input[name='itilcategories_id']");
+            var helpdeskUrgency         = $("select[name='urgency'], input[name='urgency']");
+            var nbAffectedUsers         = $("select[name='impact'], input[name='impact']");
+            var date                    = $("input[name='date']");
+            $.ajax({
+                url: root_doc + '/plugins/seasonality/ajax/ticket.php',
+                type: "POST",
+                dataType: "json",
+                data: {
+                    action: 'loadCriticity',
+                    itilcategories_id: (itilcategoriesIdElm.length != 0) ? itilcategoriesIdElm.val() : '0',
+                    nbAffectedUsers: (nbAffectedUsers.length != 0) ? nbAffectedUsers.val() : '0',
+                    helpdeskUrgency: (helpdeskUrgency.length != 0) ? helpdeskUrgency.val() : '0',
+                    date           : (date.length != 0) ? date.val() : '0',
+                },
+                success: function (json, opts) {
+                    if (!json.error) {
+                        var prioritySelect = $('select[name="priority"], input[name="priority"]');
+                        var prioritySpan = $('span[id*="change_priority"]');
+                        if (prioritySelect.length != 0) {
+                            prioritySelect.select2("val", json.criticity);
+                        } else if (prioritySpan.length != 0) {
+                            prioritySpan.html(json.criticityName);
+                        }
+                        if ((tickets_id == 0 || tickets_id == undefined) && reload) {
+                            $("input[name='add']").remove();
+                            $('form[name="form_ticket"], form[name="helpdeskform"]').submit();
+                        }
+                        $("select[name='_itil_assign[_type]']").trigger('change');
+                    }
+                }
+            });
         }
 
         /** 

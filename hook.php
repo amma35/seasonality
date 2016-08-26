@@ -4,7 +4,7 @@
  Seasonality plugin for GLPI
  Copyright (C) 2003-2015 by the Seasonality Development Team.
 
- https://forge.indepnet.net/projects/seasonality
+ https://github.com/InfotelGLPI/seasonality
  -------------------------------------------------------------------------
 
  LICENSE
@@ -30,10 +30,31 @@ function plugin_seasonality_install() {
    global $DB;
 
    include_once (GLPI_ROOT . "/plugins/seasonality/inc/profile.class.php");
+   include_once (GLPI_ROOT."/plugins/seasonality/inc/config.class.php");
 
    // Table sql creation
-   if (!TableExists("glpi_plugin_seasonality_profiles")) {
-      $DB->runFile(GLPI_ROOT . "/plugins/seasonality/install/sql/empty.sql");
+   if (!TableExists("glpi_plugin_seasonality_seasonalities")) {
+      $DB->runFile(GLPI_ROOT . "/plugins/seasonality/install/sql/empty-1.2.0.sql");
+   }elseif(!TableExists('glpi_plugin_seasonality_configs')){
+      $query = "CREATE TABLE `glpi_plugin_seasonality_configs` (
+         `id` int(11) NOT NULL auto_increment,
+         `config` tinyint(1) NOT NULL default '0',
+         PRIMARY KEY  (`id`)
+      ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;";
+      $DB->query($query);
+      $query = "INSERT INTO `glpi_plugin_seasonality_configs` (`id`,`config`) VALUES ('1', '0');";
+      $DB->query($query);
+      
+      $query = "DROP TABLE IF EXISTS `glpi_plugin_seasonality_sensibilities`;";
+      $DB->query($query);
+      $query = "CREATE TABLE `glpi_plugin_seasonality_sensibilities` (
+                  `id` int(11) NOT NULL auto_increment,
+                  `name` varchar(255) DEFAULT NULL,
+                  `matrix` text,
+                  PRIMARY KEY  (`id`)
+               ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;";
+      $DB->query($query);
+
    }
 
    PluginSeasonalityProfile::createFirstAccess($_SESSION['glpiactiveprofile']['id']);
@@ -46,7 +67,9 @@ function plugin_seasonality_uninstall() {
 
    // Plugin tables deletion
    $tables = array("glpi_plugin_seasonality_seasonalities", 
-                   "glpi_plugin_seasonality_items");
+                   "glpi_plugin_seasonality_items",
+                   "glpi_plugin_seasonality_configs",
+                   "glpi_plugin_seasonality_sensibilities");
 
    foreach ($tables as $table)
       $DB->query("DROP TABLE IF EXISTS `$table`;");

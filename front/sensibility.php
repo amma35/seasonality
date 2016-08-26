@@ -28,33 +28,18 @@
 
 include ('../../../inc/includes.php');
 
-Html::header_nocache();
-Session::checkLoginUser();
-header("Content-Type: text/html; charset=UTF-8");
+Html::header(PluginSeasonalitySensibility::getTypeName(2), '', "helpdesk" ,"pluginseasonalityseasonality", "sensibility");
 
-if (isset($_POST['action'])) {
-   switch ($_POST['action']) {
-      case "load" :
-         if (strpos($_SERVER['HTTP_REFERER'], "ticket.form.php") !== false 
-               || strpos($_SERVER['HTTP_REFERER'], "helpdesk.public.php") !== false
-               || strpos($_SERVER['HTTP_REFERER'], "tracking.injector.php") !== false) {
+$sensibility = new PluginSeasonalitySensibility();
+$sensibility->checkGlobal(READ);
 
-            $rand = mt_rand();
+if ($sensibility->canView()) {
+   Search::show("PluginSeasonalitySensibility");
 
-            $params = array('root_doc' => $CFG_GLPI['root_doc']);
-            $config = new PluginSeasonalityConfig();
-            $config->getFromDB(1);
-            
-            echo "<script type='text/javascript'>";
-            echo "var seasonality = $(document).seasonality(".json_encode($params).");";
-            if($config->fields['config'] == 0){
-                 echo "seasonality.addelements();";
-            }else{
-               echo "seasonality.addelementsSensibility();";
-            }
-            echo "</script>";
-         }
-         break;
-   }
+} else {
+   Html::displayRightError();
 }
+
+Html::footer();
+
 ?>

@@ -5,7 +5,7 @@
   Seasonality plugin for GLPI
   Copyright (C) 2003-2015 by the Seasonality Development Team.
 
-  https://forge.indepnet.net/projects/seasonality
+  https://github.com/InfotelGLPI/seasonality
   -------------------------------------------------------------------------
 
   LICENSE
@@ -37,6 +37,10 @@ function plugin_init_seasonality() {
    if (Session::getLoginUserID()) {
       Plugin::registerClass('PluginSeasonalityProfile', array('addtabon' => 'Profile'));
 
+      if (Session::haveRight("config", UPDATE)) {
+         $PLUGIN_HOOKS['config_page']['seasonality'] = 'front/config.form.php';
+      }
+
       // Display a menu entry
       if (Session::haveRight("plugin_seasonality", READ)) {
          $PLUGIN_HOOKS['use_massive_action']['seasonality']  = 1;
@@ -49,9 +53,9 @@ function plugin_init_seasonality() {
       $PLUGIN_HOOKS['add_javascript']['seasonality'] = array("lib/daterangepicker/jquery.comiseo.daterangepicker.min.js", 
                                                              "lib/daterangepicker/moment.min.js");
       
-      if (strpos($_SERVER['REQUEST_URI'], "ticket.form.php") !== false
+      if ($_SESSION['glpiactiveprofile']['interface']!='helpdesk' && (strpos($_SERVER['REQUEST_URI'], "ticket.form.php") !== false
             || strpos($_SERVER['REQUEST_URI'], "helpdesk.public.php") !== false
-            || strpos($_SERVER['REQUEST_URI'], "tracking.injector.php") !== false) {
+            || strpos($_SERVER['REQUEST_URI'], "tracking.injector.php") !== false)) {
          $PLUGIN_HOOKS['add_javascript']['seasonality'][] = 'scripts/seasonality.js';
          $PLUGIN_HOOKS['add_javascript']['seasonality'][] = 'scripts/seasonality_load_scripts.js';
       }
@@ -62,7 +66,7 @@ function plugin_init_seasonality() {
       // Purge
       $PLUGIN_HOOKS['pre_item_purge']['seasonality'] = array(
          'PluginSeasonalitySeasonality' => array('PluginSeasonalityItem', 'purgeItem'),
-         'Profile'                      => array('PluginSeasonalityProfile', 'purgeProfiles')
+         'ITILCategory' => array('PluginSeasonalityItem', 'purgeItem')
       );
       
       $PLUGIN_HOOKS['plugin_datainjection_populate']['seasonality'] = 'plugin_datainjection_populate_seasonality';
@@ -76,7 +80,7 @@ function plugin_version_seasonality() {
 
    return array(
       'name'           => _n('Seasonality', 'Seasonalities', 2, 'seasonality'),
-      'version'        => '1.1.0',
+      'version'        => '1.2.0',
       'license'        => 'GPLv2+',
       'author'         => "Infotel & Ludovic Dupont",
       'homepage'       => 'https://github.com/InfotelGLPI/seasonality',

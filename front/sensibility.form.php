@@ -28,33 +28,26 @@
 
 include ('../../../inc/includes.php');
 
-Html::header_nocache();
-Session::checkLoginUser();
-header("Content-Type: text/html; charset=UTF-8");
-
-if (isset($_POST['action'])) {
-   switch ($_POST['action']) {
-      case "load" :
-         if (strpos($_SERVER['HTTP_REFERER'], "ticket.form.php") !== false 
-               || strpos($_SERVER['HTTP_REFERER'], "helpdesk.public.php") !== false
-               || strpos($_SERVER['HTTP_REFERER'], "tracking.injector.php") !== false) {
-
-            $rand = mt_rand();
-
-            $params = array('root_doc' => $CFG_GLPI['root_doc']);
-            $config = new PluginSeasonalityConfig();
-            $config->getFromDB(1);
-            
-            echo "<script type='text/javascript'>";
-            echo "var seasonality = $(document).seasonality(".json_encode($params).");";
-            if($config->fields['config'] == 0){
-                 echo "seasonality.addelements();";
-            }else{
-               echo "seasonality.addelementsSensibility();";
-            }
-            echo "</script>";
-         }
-         break;
+$sensibility = new PluginSeasonalitySensibility();
+if (isset($_POST["add"])) {
+   $sensibility->check(-1, UPDATE);
+   $sensibility->add($_POST);
+   if ($_SESSION['glpibackcreated']) {
+      Html::redirect($sensibility->getFormURL() . "?id=" . $newID);
    }
+   Html::back();
+} else if (isset($_POST["update"])) {
+   $sensibility->check($_POST["id"], UPDATE);
+   $sensibility->update($_POST);
+   Html::back();
+} else if (isset($_POST["delete"])) {
+   $sensibility_id = $_POST["id"];
+   $sensibility->check($_POST["id"], UPDATE);
+   $sensibility->delete($_POST, 1);
+   Html::redirect(Toolbox::getItemTypeFormURL('Sensibility')."?id=".$sensibility_id);
+}else {
+   Html::header(PluginSeasonalitySensibility::getTypeName(2), '', "helpdesk", "pluginseasonalityseasonality", "sensibility");
+   $sensibility->display($_GET);
+   Html::footer();
 }
 ?>

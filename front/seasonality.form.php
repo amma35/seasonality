@@ -4,7 +4,7 @@
  Seasonality plugin for GLPI
  Copyright (C) 2003-2015 by the Seasonality Development Team.
 
- https://forge.indepnet.net/projects/seasonality
+ https://github.com/InfotelGLPI/seasonality
  -------------------------------------------------------------------------
 
  LICENSE

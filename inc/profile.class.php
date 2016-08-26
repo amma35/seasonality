@@ -49,7 +49,7 @@ class PluginSeasonalityProfile extends Profile {
    */
    function getTabNameForItem(CommonGLPI $item, $withtemplate=0) {
 
-      if ($item->getType()=='Profile') {
+      if ($item->getType()=='Profile' && $item->getField('interface')!='helpdesk') {
          return PluginSeasonalityProfile::getTypeName(2);
       }
       return '';
